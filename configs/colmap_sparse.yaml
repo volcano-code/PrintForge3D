@@ -1,0 +1,7 @@
+backend: colmap
+stage: sparse_sfm
+camera_model: OPENCV
+single_camera: false
+matching: exhaustive
+quality_profile: high
+input_extensions: [".jpg", ".jpeg", ".png", ".tif", ".tiff"]
