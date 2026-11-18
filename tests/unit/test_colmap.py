@@ -1,10 +1,17 @@
 from pathlib import Path
+
 import pytest
-from printforge.reconstruction.colmap import run_colmap
+
+from printforge.reconstruction.colmap import (
+    analyze_text_model,
+    run_colmap,
+)
+
 
 def test_colmap_requires_existing_images_dir(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         run_colmap(tmp_path / "missing", tmp_path / "out")
+
 
 def test_colmap_requires_at_least_two_images(tmp_path: Path):
     images = tmp_path / "images"
@@ -12,3 +19,30 @@ def test_colmap_requires_at_least_two_images(tmp_path: Path):
     (images / "one.jpg").write_bytes(b"not-an-image")
     with pytest.raises(ValueError, match="at least two"):
         run_colmap(images, tmp_path / "out")
+
+
+def test_analyze_text_model_counts_registered_images_and_points(tmp_path: Path):
+    # COLMAP images.txt stores one image header followed by one observation line.
+    (tmp_path / "images.txt").write_text(
+        "# header\n"
+        "1 1 0 0 0 0 0 0 1 image_001.jpg\n"
+        "0 0 -1\n"
+        "2 1 0 0 0 1 0 0 1 image_002.jpg\n"
+        "0 0 -1\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "points3D.txt").write_text(
+        "# header\n"
+        "1 0 0 0 255 255 255 0.5 1 0 2 0\n"
+        "2 1 0 0 255 0 0 1.5 1 1 2 1\n",
+        encoding="utf-8",
+    )
+    stats = analyze_text_model(tmp_path)
+    assert stats["registered_images"] == 2
+    assert stats["sparse_points"] == 2
+    assert stats["mean_track_reprojection_error_px"] == 1.0
+
+
+def test_analyze_text_model_requires_files(tmp_path: Path):
+    with pytest.raises(FileNotFoundError):
+        analyze_text_model(tmp_path)
