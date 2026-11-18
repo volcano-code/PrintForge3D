@@ -10,12 +10,11 @@ from typing import Any
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 
-def _run(command: list[str], log, *, cwd: Path | None = None) -> None:
-    log.write("$ " + " ".join(command) + "\n")
+def _run(command: list[str], log) -> None:
+    log.write("$ " + " ".join(command) + "\\n")
     log.flush()
     completed = subprocess.run(
         command,
-        cwd=cwd,
         stdout=log,
         stderr=subprocess.STDOUT,
         text=True,
@@ -28,15 +27,29 @@ def _run(command: list[str], log, *, cwd: Path | None = None) -> None:
 
 
 def _parse_images_file(path: Path) -> int:
-    """Count image records in COLMAP images.txt, ignoring observation lines."""
+    """Count COLMAP image records by consuming header/observation line pairs."""
+    lines = path.read_text(encoding="utf-8").splitlines()
     count = 0
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
+    index = 0
+    while index < len(lines):
+        line = lines[index].strip()
+        index += 1
+        if not line or line.startswith("#"):
             continue
-        # COLMAP image records have 10 fixed fields before the optional name.
-        if len(stripped.split(maxsplit=9)) >= 10:
+        fields = line.split(maxsplit=9)
+        if len(fields) >= 10:
+            try:
+                int(fields[0])
+                for value in fields[1:8]:
+                    float(value)
+                int(fields[8])
+            except ValueError:
+                continue
             count += 1
+            # Every image header is followed by one observations line, which
+            # may be empty. Consume it so long observations are never misread.
+            if index < len(lines):
+                index += 1
     return count
 
 
@@ -56,8 +69,7 @@ def _parse_points_file(path: Path) -> tuple[int, float | None]:
             errors.append(float(fields[7]))
         except ValueError:
             continue
-    mean_error = sum(errors) / len(errors) if errors else None
-    return count, mean_error
+    return count, sum(errors) / len(errors) if errors else None
 
 
 def analyze_text_model(model_dir: Path) -> dict[str, Any]:
@@ -145,8 +157,7 @@ def run_colmap(
             raise RuntimeError(
                 "COLMAP mapper produced no sparse model; inspect colmap.log"
             )
-        # Select the model with the largest registered image set when several
-        # reconstructions are produced. Binary model conversion is deterministic.
+
         model_stats: list[tuple[int, Path]] = []
         for index, model in enumerate(models):
             candidate_text = workspace / f"sparse_text_candidate_{index}"
@@ -166,18 +177,15 @@ def run_colmap(
             )
             stats = analyze_text_model(candidate_text)
             model_stats.append((stats["registered_images"], model))
-            if stats["registered_images"] == max(
-                (entry[0] for entry in model_stats), default=-1
-            ):
-                text_dir.mkdir(parents=True, exist_ok=True)
-                for file in candidate_text.iterdir():
-                    destination = text_dir / file.name
-                    if destination.exists():
-                        destination.unlink()
-                    shutil.copy2(file, destination)
 
         best_model = max(model_stats, key=lambda item: item[0])[1]
+        best_index = models.index(best_model)
+        best_text = workspace / f"sparse_text_candidate_{best_index}"
+        text_dir.mkdir(parents=True, exist_ok=True)
+        for file in best_text.iterdir():
+            shutil.copy2(file, text_dir / file.name)
         final_stats = analyze_text_model(text_dir)
+
     return {
         "backend": "COLMAP",
         "stage": "sparse_sfm",
