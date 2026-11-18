@@ -1,16 +1,21 @@
 """Command-line interface for PrintForge3D."""
 from __future__ import annotations
+
 import argparse
 import json
 import shutil
 import sys
 from pathlib import Path
+
 from printforge import __version__
 from printforge.reconstruction.colmap import run_colmap
 
+
 def _doctor() -> int:
-    checks = {"python": sys.version.split()[0],
-              "colmap": shutil.which("colmap") or "not found (optional until reconstruction)"}
+    checks = {
+        "python": sys.version.split()[0],
+        "colmap": shutil.which("colmap") or "not found (optional until reconstruction)",
+    }
     for name in ("numpy", "open3d", "torch"):
         try:
             module = __import__(name)
@@ -24,6 +29,7 @@ def _doctor() -> int:
     print(json.dumps(checks, indent=2))
     return 0
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="printforge", description="PrintForge3D toolkit")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -34,8 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
     colmap.add_argument("--workspace", type=Path, required=True)
     colmap.add_argument("--camera-model", default="OPENCV")
     colmap.add_argument("--single-camera", action="store_true")
-    colmap.add_argument("--quality", choices=("low", "medium", "high", "extreme"), default="high")
+    colmap.add_argument(
+        "--quality", choices=("low", "medium", "high", "extreme"), default="high"
+    )
     return parser
+
 
 def main() -> int:
     parser = build_parser()
@@ -44,10 +53,15 @@ def main() -> int:
         return _doctor()
     if args.command == "colmap-run":
         try:
-            result = run_colmap(args.images, args.workspace, args.camera_model,
-                                args.single_camera, args.quality)
+            result = run_colmap(
+                args.images,
+                args.workspace,
+                args.camera_model,
+                args.single_camera,
+                args.quality,
+            )
         except (FileNotFoundError, FileExistsError, ValueError, RuntimeError) as exc:
-            parser.exit(2, f"printforge: error: {exc}\n")
+            parser.exit(2, f"printforge: error: {exc}\\n")
         print(json.dumps(result, indent=2))
         return 0
     parser.error("unknown command")
