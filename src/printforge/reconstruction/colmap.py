@@ -1,49 +1,198 @@
-"""Safe, explicit wrapper for the COLMAP command-line sparse SfM baseline."""
+"""Safe COLMAP sparse-SfM runner and text-model statistics parser."""
 from __future__ import annotations
+
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
-def run_colmap(images: Path, workspace: Path, camera_model: str = "OPENCV",
-               single_camera: bool = False, quality: str = "high") -> dict[str, Any]:
-    """Run feature extraction, exhaustive matching, and sparse mapping."""
+
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
+
+
+def _run(command: list[str], log, *, cwd: Path | None = None) -> None:
+    log.write("$ " + " ".join(command) + "\n")
+    log.flush()
+    completed = subprocess.run(
+        command,
+        cwd=cwd,
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"COLMAP command failed ({completed.returncode}); see the run log"
+        )
+
+
+def _parse_images_file(path: Path) -> int:
+    """Count image records in COLMAP images.txt, ignoring observation lines."""
+    count = 0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        # COLMAP image records have 10 fixed fields before the optional name.
+        if len(stripped.split(maxsplit=9)) >= 10:
+            count += 1
+    return count
+
+
+def _parse_points_file(path: Path) -> tuple[int, float | None]:
+    """Return point count and mean point reprojection error from points3D.txt."""
+    errors: list[float] = []
+    count = 0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        fields = stripped.split()
+        if len(fields) < 8:
+            continue
+        count += 1
+        try:
+            errors.append(float(fields[7]))
+        except ValueError:
+            continue
+    mean_error = sum(errors) / len(errors) if errors else None
+    return count, mean_error
+
+
+def analyze_text_model(model_dir: Path) -> dict[str, Any]:
+    """Parse a COLMAP TXT model directory (images.txt, points3D.txt)."""
+    images_file = model_dir / "images.txt"
+    points_file = model_dir / "points3D.txt"
+    if not images_file.is_file() or not points_file.is_file():
+        raise FileNotFoundError(
+            f"expected images.txt and points3D.txt in COLMAP text model: {model_dir}"
+        )
+    point_count, mean_error = _parse_points_file(points_file)
+    return {
+        "registered_images": _parse_images_file(images_file),
+        "sparse_points": point_count,
+        "mean_track_reprojection_error_px": mean_error,
+    }
+
+
+def run_colmap(
+    images: Path,
+    workspace: Path,
+    camera_model: str = "OPENCV",
+    single_camera: bool = False,
+    quality: str = "high",
+) -> dict[str, Any]:
+    """Run feature extraction, exhaustive matching, mapping, and model analysis.
+
+    This baseline intentionally stops at sparse SfM. Dense PatchMatch stereo
+    is not invoked implicitly because the installed COLMAP build may lack CUDA.
+    """
     images = images.expanduser().resolve()
     workspace = workspace.expanduser().resolve()
     if not images.is_dir():
         raise FileNotFoundError(f"image directory does not exist: {images}")
-    image_files = [p for p in images.iterdir() if p.is_file()
-                   and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".tif", ".tiff"}]
+    image_files = sorted(
+        p for p in images.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES
+    )
     if len(image_files) < 2:
         raise ValueError("at least two supported image files are required")
     executable = shutil.which("colmap")
     if executable is None:
         raise FileNotFoundError("COLMAP executable not found on PATH")
     if workspace.exists() and any(workspace.iterdir()):
-        raise FileExistsError(f"workspace must be empty to avoid overwriting results: {workspace}")
+        raise FileExistsError(
+            f"workspace must be empty to avoid overwriting results: {workspace}"
+        )
+
     database = workspace / "database.db"
     sparse_dir = workspace / "sparse"
+    text_dir = workspace / "sparse_text"
     workspace.mkdir(parents=True, exist_ok=True)
     sparse_dir.mkdir(parents=True, exist_ok=True)
-    prefix = [executable]
     commands = [
-        prefix + ["feature_extractor", "--database_path", str(database), "--image_path", str(images),
-                 "--ImageReader.camera_model", camera_model,
-                 "--ImageReader.single_camera", "1" if single_camera else "0"],
-        prefix + ["exhaustive_matcher", "--database_path", str(database)],
-        prefix + ["mapper", "--database_path", str(database), "--image_path", str(images),
-                 "--output_path", str(sparse_dir)],
+        [
+            executable,
+            "feature_extractor",
+            "--database_path",
+            str(database),
+            "--image_path",
+            str(images),
+            "--ImageReader.camera_model",
+            camera_model,
+            "--ImageReader.single_camera",
+            "1" if single_camera else "0",
+        ],
+        [executable, "exhaustive_matcher", "--database_path", str(database)],
+        [
+            executable,
+            "mapper",
+            "--database_path",
+            str(database),
+            "--image_path",
+            str(images),
+            "--output_path",
+            str(sparse_dir),
+        ],
     ]
     log_path = workspace / "colmap.log"
     with log_path.open("w", encoding="utf-8") as log:
         for command in commands:
-            log.write("$ " + " ".join(command) + "\n")
-            log.flush()
-            completed = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT,
-                                        text=True, check=False)
-            if completed.returncode != 0:
-                raise RuntimeError(f"COLMAP command failed ({completed.returncode}); see {log_path}")
-    models = sorted(p for p in sparse_dir.iterdir() if p.is_dir())
-    return {"backend": "COLMAP", "stage": "sparse_sfm", "image_count": len(image_files),
-            "database": str(database), "sparse_models": [str(p) for p in models],
-            "log": str(log_path), "quality_profile_reserved": quality, "status": "completed"}
+            _run(command, log)
+
+        models = sorted(p for p in sparse_dir.iterdir() if p.is_dir())
+        if not models:
+            raise RuntimeError(
+                "COLMAP mapper produced no sparse model; inspect colmap.log"
+            )
+        # Select the model with the largest registered image set when several
+        # reconstructions are produced. Binary model conversion is deterministic.
+        model_stats: list[tuple[int, Path]] = []
+        for index, model in enumerate(models):
+            candidate_text = workspace / f"sparse_text_candidate_{index}"
+            candidate_text.mkdir(parents=True, exist_ok=True)
+            _run(
+                [
+                    executable,
+                    "model_converter",
+                    "--input_path",
+                    str(model),
+                    "--output_path",
+                    str(candidate_text),
+                    "--output_type",
+                    "TXT",
+                ],
+                log,
+            )
+            stats = analyze_text_model(candidate_text)
+            model_stats.append((stats["registered_images"], model))
+            if stats["registered_images"] == max(
+                (entry[0] for entry in model_stats), default=-1
+            ):
+                text_dir.mkdir(parents=True, exist_ok=True)
+                for file in candidate_text.iterdir():
+                    destination = text_dir / file.name
+                    if destination.exists():
+                        destination.unlink()
+                    shutil.copy2(file, destination)
+
+        best_model = max(model_stats, key=lambda item: item[0])[1]
+        final_stats = analyze_text_model(text_dir)
+    return {
+        "backend": "COLMAP",
+        "stage": "sparse_sfm",
+        "input_images": len(image_files),
+        "registered_images": final_stats["registered_images"],
+        "registration_ratio": final_stats["registered_images"] / len(image_files),
+        "sparse_points": final_stats["sparse_points"],
+        "mean_track_reprojection_error_px": final_stats[
+            "mean_track_reprojection_error_px"
+        ],
+        "database": str(database),
+        "sparse_model": str(best_model),
+        "text_model": str(text_dir),
+        "log": str(log_path),
+        "quality_profile": quality,
+        "dense_mvs": "not_run",
+        "status": "completed",
+    }
