@@ -8,12 +8,14 @@ from printforge.foundation_models.contracts import (
     ReconstructionBatch,
     ViewPrediction,
 )
+from printforge.foundation_models.mapanything_adapter import MapAnythingAdapter
 
 __all__ = [
     "CameraIntrinsics",
     "CoordinateFrame",
     "DepthConvention",
     "LengthUnit",
+    "MapAnythingAdapter",
     "ReconstructionBatch",
     "ViewPrediction",
 ]
