@@ -1,8 +1,8 @@
 """Safe COLMAP sparse-SfM runner and text-model statistics parser."""
 
+import pathlib
 import shutil
 import subprocess
-from pathlib import Path
 
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
@@ -24,7 +24,7 @@ def _run(command: list[str], log) -> None:
         )
 
 
-def _parse_images_file(path: Path) -> int:
+def _parse_images_file(path: pathlib.Path) -> int:
     """Count COLMAP image records by consuming header/observation line pairs."""
     lines = path.read_text(encoding="utf-8").splitlines()
     count = 0
@@ -51,7 +51,7 @@ def _parse_images_file(path: Path) -> int:
     return count
 
 
-def _parse_points_file(path: Path) -> tuple[int, float | None]:
+def _parse_points_file(path: pathlib.Path) -> tuple[int, float | None]:
     """Return point count and mean point reprojection error from points3D.txt."""
     errors: list[float] = []
     count = 0
@@ -70,7 +70,7 @@ def _parse_points_file(path: Path) -> tuple[int, float | None]:
     return count, sum(errors) / len(errors) if errors else None
 
 
-def analyze_text_model(model_dir: Path) -> dict[str, object]:
+def analyze_text_model(model_dir: pathlib.Path) -> dict[str, object]:
     """Parse a COLMAP TXT model directory (images.txt, points3D.txt)."""
     images_file = model_dir / "images.txt"
     points_file = model_dir / "points3D.txt"
@@ -87,8 +87,8 @@ def analyze_text_model(model_dir: Path) -> dict[str, object]:
 
 
 def run_colmap(
-    images: Path,
-    workspace: Path,
+    images: pathlib.Path,
+    workspace: pathlib.Path,
     camera_model: str = "OPENCV",
     single_camera: bool = False,
     quality: str = "high",
@@ -156,7 +156,7 @@ def run_colmap(
                 "COLMAP mapper produced no sparse model; inspect colmap.log"
             )
 
-        model_stats: list[tuple[int, Path]] = []
+        model_stats: list[tuple[int, pathlib.Path]] = []
         for index, model in enumerate(models):
             candidate_text = workspace / f"sparse_text_candidate_{index}"
             candidate_text.mkdir(parents=True, exist_ok=True)
