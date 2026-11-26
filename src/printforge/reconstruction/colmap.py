@@ -1,8 +1,9 @@
 """Safe COLMAP sparse-SfM runner and text-model statistics parser."""
 
+from pathlib import Path
+
 import shutil
 import subprocess
-from pathlib import Path
 
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
