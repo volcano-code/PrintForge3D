@@ -80,10 +80,18 @@ models:
   vggt:
     repository: "https://github.com/facebookresearch/vggt"
     role: "geometry_foundation_baseline"
-    code_license: "verify upstream"
-    weights_license: "verify upstream"
-    status: "baseline_candidate"
+    code_license: "Meta VGGT License; commercial-friendly except military applications"
+    weights_license: "only facebook/VGGT-1B-Commercial is commercial-use licensed; original checkpoint is non-commercial"
+    status: "commercial_checkpoint_requires_access_application"
     priority: 2
+
+  vggt_omega:
+    repository: "https://github.com/facebookresearch/vggt-omega"
+    role: "memory_efficient_geometry_foundation_baseline"
+    code_license: "verify upstream"
+    weights_license: "checkpoint access application required; verify exact checkpoint terms"
+    status: "candidate_pending_access_and_license_audit"
+    priority: 3
 
   mapanything:
     repository: "https://github.com/facebookresearch/map-anything"
