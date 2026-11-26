@@ -1,10 +1,8 @@
 """Safe COLMAP sparse-SfM runner and text-model statistics parser."""
-from __future__ import annotations
 
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any
 
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
@@ -72,7 +70,7 @@ def _parse_points_file(path: Path) -> tuple[int, float | None]:
     return count, sum(errors) / len(errors) if errors else None
 
 
-def analyze_text_model(model_dir: Path) -> dict[str, Any]:
+def analyze_text_model(model_dir: Path) -> dict[str, object]:
     """Parse a COLMAP TXT model directory (images.txt, points3D.txt)."""
     images_file = model_dir / "images.txt"
     points_file = model_dir / "points3D.txt"
@@ -94,7 +92,7 @@ def run_colmap(
     camera_model: str = "OPENCV",
     single_camera: bool = False,
     quality: str = "high",
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Run feature extraction, exhaustive matching, mapping, and model analysis.
 
     This baseline intentionally stops at sparse SfM. Dense PatchMatch stereo
