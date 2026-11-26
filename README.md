@@ -4,7 +4,7 @@
 
 PrintForge3D is an eight-week engineering and research project targeting reliable geometry reconstruction from multi-view RGB images, geometry-preserving mesh repair, and 3D-printability analysis.
 
-> **Project status:** W1 foundation. The repository is being initialized. COLMAP/Open3D baselines, learned reconstruction, custom fusion, mesh repair, and the web application are planned milestones—not completed features.
+> **Project status:** W1 foundation plus Phase 1.5 audit in progress. The COLMAP sparse-SfM runner, shared geometry prediction contract, model/license registry, and optional MapAnything Apache adapter are implemented. MapAnything weights have not been downloaded and no foundation-model inference has yet been run on the RTX 5090 D. Custom fusion, mesh repair, printability analysis, and the web application remain planned.
 
 ## Goals
 
@@ -45,7 +45,7 @@ The first implementation prioritizes a measurable COLMAP baseline. A neural rend
 
 ## Repository layout
 
-- `src/printforge/`: Python package, CLI, reconstruction and evaluation.
+- `src/printforge/`: Python package, CLI, reconstruction, foundation-model contracts/adapters, and evaluation.
 - `cpp/`: native C++ geometry core and optional Python bindings.
 - `tests/`: unit, integration, and regression tests.
 - `configs/`: experiment and pipeline configuration.
@@ -75,7 +75,7 @@ python -m pip install -e ".[vision]"
 printforge colmap-run --help
 ```
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup and [docs/BASELINE_PROTOCOL.md](docs/BASELINE_PROTOCOL.md) for the first benchmark protocol.
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup, [docs/BASELINE_PROTOCOL.md](docs/BASELINE_PROTOCOL.md) for the first benchmark protocol, [docs/PHASE_1_5_TECH_AUDIT.md](docs/PHASE_1_5_TECH_AUDIT.md) for model/license decisions, and [docs/MAPANYTHING_ADAPTER.md](docs/MAPANYTHING_ADAPTER.md) for isolated model setup.
 
 ## Research principles
 
@@ -91,8 +91,8 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup and [docs/BASELINE_PROT
 
 | Milestone | Scope | Status |
 |---|---|---|
-| W1 | Project foundation and COLMAP baseline | In progress |
-| W2 | Learned reconstruction adapter and fair comparison | Planned |
+| W1 | Project foundation and COLMAP sparse-SfM runner | Code foundation complete; real DTU run pending |
+| W2 | Learned reconstruction adapter and fair comparison | MapAnything adapter code added; runtime validation pending |
 | W3 | Cross-view reliability features and dataset | Planned |
 | W4 | Reliability network and weighted fusion | Planned |
 | W5 | Mesh validation, repair proposals, printability checks | Planned |
