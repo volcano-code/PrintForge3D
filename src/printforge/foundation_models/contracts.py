@@ -16,6 +16,13 @@ class CoordinateFrame(str, Enum):
     CAMERA = "camera"
 
 
+class DepthConvention(str, Enum):
+    """Meaning of a depth map's scalar values."""
+
+    CAMERA_Z = "camera_z"
+    ALONG_RAY = "along_ray"
+
+
 class LengthUnit(str, Enum):
     """Explicit length unit; UNKNOWN must not be silently treated as meters."""
 
@@ -62,7 +69,7 @@ class CameraIntrinsics:
 
 @dataclass(frozen=True)
 class ViewPrediction:
-    """Per-view dense predictions in a declared coordinate convention."""
+    """Per-view dense predictions with explicit depth and point-map frames."""
 
     image_id: str
     width: int
@@ -73,6 +80,9 @@ class ViewPrediction:
     valid_mask: Any | None = None
     intrinsics: CameraIntrinsics | None = None
     world_from_camera: tuple[tuple[float, ...], ...] | None = None
+    depth_frame: CoordinateFrame = CoordinateFrame.CAMERA
+    pointmap_frame: CoordinateFrame = CoordinateFrame.WORLD
+    depth_convention: DepthConvention = DepthConvention.CAMERA_Z
 
     def __post_init__(self) -> None:
         if not self.image_id:
