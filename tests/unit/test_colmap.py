@@ -19,20 +19,21 @@ def test_colmap_requires_at_least_two_images(tmp_path: Path):
 
 
 def test_analyze_text_model_counts_registered_images_and_points(tmp_path: Path):
-    (tmp_path / "images.txt").write_text(
-        "# header\\n"
-        "1 1 0 0 0 0 0 0 1 image_001.jpg\\n"
-        "0 0 -1\\n"
-        "2 1 0 0 0 1 0 0 1 image_002.jpg\\n"
-        "0 0 -1\\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "points3D.txt").write_text(
-        "# header\\n"
-        "1 0 0 0 255 255 255 0.5 1 0 2 0\\n"
-        "2 1 0 0 255 0 0 1.5 1 1 2 1\\n",
-        encoding="utf-8",
-    )
+    images_lines = [
+        "# header",
+        "1 1 0 0 0 0 0 0 1 image_001.jpg",
+        "0 0 -1",
+        "2 1 0 0 0 1 0 0 1 image_002.jpg",
+        "0 0 -1",
+    ]
+    points_lines = [
+        "# header",
+        "1 0 0 0 255 255 255 0.5 1 0 2 0",
+        "2 1 0 0 255 0 0 1.5 1 1 2 1",
+    ]
+    (tmp_path / "images.txt").write_text("\n".join(images_lines), encoding="utf-8")
+    (tmp_path / "points3D.txt").write_text("\n".join(points_lines), encoding="utf-8")
+
     stats = analyze_text_model(tmp_path)
     assert stats["registered_images"] == 2
     assert stats["sparse_points"] == 2
