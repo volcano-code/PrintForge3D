@@ -8,9 +8,11 @@ class ShapeTensor:
         self.ndim = len(shape)
 
     def __getitem__(self, index):
-        if index != 0:
-            raise IndexError(index)
-        return ShapeTensor(self.shape[1:])
+        if index == 0:
+            return ShapeTensor(self.shape[1:])
+        if index == (Ellipsis, 0):
+            return ShapeTensor(self.shape[:-1])
+        raise IndexError(index)
 
 
 def test_mapanything_adapter_import_does_not_load_torch_or_model():
