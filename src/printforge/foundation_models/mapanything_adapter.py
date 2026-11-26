@@ -23,7 +23,7 @@ def _without_batch(value: Any, *, channels_last: bool = False) -> Any:
     """Remove the single-scene batch dimension and optional singleton channel."""
     if not hasattr(value, "ndim") or value.ndim == 0:
         raise ValueError("model output must be a tensor with spatial dimensions")
-    if value.ndim >= 4 and value.shape[0] == 1:
+    if value.ndim >= 3 and value.shape[0] == 1:
         value = value[0]
     if channels_last and value.ndim == 3 and value.shape[-1] == 1:
         value = value[..., 0]
