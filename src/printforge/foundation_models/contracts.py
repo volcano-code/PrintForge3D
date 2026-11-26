@@ -1,10 +1,12 @@
 """Shared, dependency-light contract for multi-view reconstruction backends."""
+
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Protocol
 
 
 class CoordinateFrame(str, Enum):
