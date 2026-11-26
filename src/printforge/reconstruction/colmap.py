@@ -1,5 +1,7 @@
 """Safe COLMAP sparse-SfM runner and text-model statistics parser."""
 
+# ruff: noqa: I001
+
 import pathlib
 import shutil
 import subprocess
