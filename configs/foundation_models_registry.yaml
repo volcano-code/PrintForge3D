@@ -1,0 +1,94 @@
+schema_version: 1
+audit_date: "2026-11-26"
+hardware_target:
+  gpu: "NVIDIA GeForce RTX 5090 D"
+  vram_gb: 32
+  python: "3.11.18"
+  pytorch: "2.9.1+cu128"
+  cuda_runtime: "12.8"
+
+policy:
+  third_party_models_are_isolated: true
+  require_code_and_weight_license_separately: true
+  require_checkpoint_revision: true
+  require_peak_vram_measurement: true
+  do_not_assume_repository_license_covers_weights: true
+
+models:
+  deja_view:
+    repository: "https://github.com/nv-tlabs/dvlt"
+    role: "recurrent_feed_forward_multiview_baseline"
+    code_license: "Apache-2.0 with third-party exceptions"
+    weights_license: "NVIDIA License; non-commercial research and evaluation"
+    status: "research_only_pending_weight_license"
+    priority: 1
+    runtime_notes: "117M parameters; K refinement steps exposed at inference"
+
+  three_r_adapter:
+    repository: "https://github.com/PKU-OV3-LAB/3R-Adapter"
+    role: "relational_adaptation_research_reference"
+    code_license: "no open-source license granted; all rights reserved"
+    weights_license: "backbone-specific; audit separately"
+    status: "paper_reference_only_do_not_vendor_or_adapt_source"
+    priority: 2
+    runtime_notes: "RTX 50-series Pi3 recipe documents torch 2.9.0 and cu128"
+
+  saf3r:
+    repository: "https://github.com/jndeng/SAF3R"
+    role: "dynamic_sparse_attention_efficiency_baseline"
+    code_license: "not found in audited repository snapshot; permission required"
+    weights_license: "upstream backbone checkpoint terms"
+    status: "isolated_benchmark_only_pending_license"
+    priority: 3
+    runtime_notes: "Triton kernels; supports VGGT, Pi3, DA3 and StreamVGGT"
+
+  toposurfel:
+    repository: "https://github.com/Fan-Treasure/TopoSurfel"
+    role: "gaussian_surfel_mesh_coupled_surface_reconstruction"
+    code_license: "research_and_non_profit_only; commercial use prohibited without permission"
+    weights_license: "audit upstream components separately"
+    status: "research_only_not_product_dependency"
+    priority: 4
+    runtime_notes: "Tested with torch 2.5.1 and cu121 plus compiled CUDA dependencies"
+
+  adele:
+    project_page: "https://vlg-acme.inf.ethz.ch/publications/ADELE-Adaptive-Delaunay-Grids-for.html"
+    role: "mesh_native_reconstruction_research"
+    code_license: "no public implementation linked in audited project page"
+    weights_license: "not applicable / not published"
+    status: "paper_only"
+    priority: 5
+    runtime_notes: "Adaptive Delaunay grid initialized from VGGT depth maps"
+
+  lsrm:
+    repository: "https://github.com/facebookresearch/Large-Sparse-Reconstruction-Model"
+    role: "object_centric_sparse_view_reconstruction_baseline"
+    code_license: "audit repository LICENSE before reuse"
+    weights_license: "audit Hugging Face checkpoint terms"
+    status: "deferred_until_32gb_feasibility_and_gated_weights"
+    priority: 6
+    runtime_notes: "README reports H200 tested and inference below 40 GB; DINOv3 ViT-H weights gated"
+
+  amb3r:
+    paper: "https://openaccess.thecvf.com/content/CVPR2026/html/Wang_AMB3R_Accurate_Feed-forward_Metric-scale_3D_Reconstruction_with_Backend_CVPR_2026_paper.html"
+    role: "metric_scale_feed_forward_geometry_baseline"
+    code_license: "pending exact repository audit"
+    weights_license: "pending exact checkpoint audit"
+    status: "candidate_pending_code_and_weight_verification"
+    priority: 2
+
+  vggt:
+    repository: "https://github.com/facebookresearch/vggt"
+    role: "geometry_foundation_baseline"
+    code_license: "verify upstream"
+    weights_license: "verify upstream"
+    status: "baseline_candidate"
+    priority: 2
+
+  mapanything:
+    repository: "https://github.com/facebookresearch/map-anything"
+    role: "metric_feed_forward_geometry_baseline"
+    code_license: "Apache-2.0"
+    weights_license: "use facebook/map-anything-apache (Apache-2.0) for commercial-friendly work"
+    status: "commercial_friendly_candidate"
+    priority: 2
