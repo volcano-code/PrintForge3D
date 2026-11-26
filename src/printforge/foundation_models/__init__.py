@@ -3,6 +3,7 @@
 from printforge.foundation_models.contracts import (
     CameraIntrinsics,
     CoordinateFrame,
+    DepthConvention,
     LengthUnit,
     ReconstructionBatch,
     ViewPrediction,
@@ -11,6 +12,7 @@ from printforge.foundation_models.contracts import (
 __all__ = [
     "CameraIntrinsics",
     "CoordinateFrame",
+    "DepthConvention",
     "LengthUnit",
     "ReconstructionBatch",
     "ViewPrediction",
