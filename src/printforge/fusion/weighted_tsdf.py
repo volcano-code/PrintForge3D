@@ -6,9 +6,9 @@ which future C++/CUDA implementations can be checked.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from math import isfinite
-from typing import Iterable
 
 
 @dataclass(frozen=True)
